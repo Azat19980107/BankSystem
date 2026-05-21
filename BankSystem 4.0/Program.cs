@@ -2,47 +2,89 @@
 {
     class BankAccount
     {
-        public string Name;
-        public int Id;
-        public decimal Balance {  get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Balance { get; set; }
+        public override string ToString()
+        {
+            return $"{Name}, {Id}, Баланс: {Balance}";
+        }
+
+    }
+    class Bank
+    {
+        List <BankAccount> accounts = new List <BankAccount> ();
+
+        public void CreateAccount (string name, int id)
+        {
+            accounts.Add(new BankAccount
+            {
+                Id = id,
+                Name = name,
+            });
+        }
+
+        public void ShowInfo ()
+        {
+            foreach (var account in accounts)
+            {
+                Console.WriteLine(account);
+            }
+        }
     }
     internal class Program
     {
-        static BankAccount CreateAccount(string name, int id)
-        {
-            return new BankAccount { Name = name, Id = id };
-        }
         static void Main(string[] args)
         {
-            List<BankAccount> accounts = new List<BankAccount>();
-
+            Bank someBank = new Bank ();
+            
             while (true)
             {
-                int.TryParse(Console.ReadLine(), out int button);
-                if (button == 1)
-                {
-                    Console.WriteLine("Введите имя");
-                    string name = Console.ReadLine();
-                    Console.WriteLine("Введите ID");
-                    int.TryParse(Console.ReadLine(), out int id);
-                    accounts.Add(CreateAccount(name, id));
-                }
-                else if (button == 2)
-                {
-                    Console.WriteLine("Посмотреть аккаунты");
+                Console.WriteLine(
+                    "1 - Создать аккаунт\n" +
+                    "2 - Посмотреть аккаунты");
 
-                    foreach (var account in accounts)
-                    {
-                        Console.WriteLine($"{account.Name}, Баланс: {account.Balance}");
-                    }
-                }
-                else if(button == 0)
+                if (!int.TryParse(Console.ReadLine(), out int button))
                 {
-                    break;
+                    Console.WriteLine("Введите число");
+                    continue;
                 }
 
-                Console.ReadLine();
-                  
+                switch (button)
+                {
+                    case 1:
+
+                        Console.WriteLine("Введите свое имя");
+                        string customerName = Console.ReadLine();
+                        Console.WriteLine("Введите ID");
+                        bool isRunning = true;
+                        while (isRunning)
+                        {
+                            bool isNumber = int.TryParse(Console.ReadLine(), out int id);
+
+                            if(!isNumber)
+                            {
+                                Console.WriteLine("Введите число");
+                                continue;
+                            }
+
+                            someBank.CreateAccount(customerName, id);
+
+                            Console.WriteLine("Аккаунт создан");
+                            
+                            isRunning = false;
+                            
+                        }
+
+
+                        break;
+
+                    case 2:
+
+                        someBank.ShowInfo();
+                        break;
+                }
+                
             }
         }
     }
