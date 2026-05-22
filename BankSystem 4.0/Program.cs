@@ -13,6 +13,10 @@
         {
             Balance += amount;
         }
+        public void Withdrow (decimal amount)
+        {
+            Balance -= amount;
+        }
 
     }
     class Bank
@@ -144,6 +148,51 @@
                             }
 
                            
+                            break;
+                        }
+                    case 4:
+                        {
+                            Console.WriteLine("Для списания введите ID");
+
+                            while (true)
+                            {
+                                bool isIdNumber = int.TryParse(Console.ReadLine(), out int id);
+
+                                if (!isIdNumber)
+                                {
+                                    Console.WriteLine("ID долже быть числовым");
+                                    continue;
+                                }
+
+                                var foundUser = someBank.FindAccount(id);
+
+                                if(foundUser == null)
+                                {
+                                    Console.WriteLine("Аккаунт не найден");
+                                    continue;
+                                }
+
+                                Console.WriteLine("Введите сумму списания");
+
+                                while (true)
+                                {
+                                    bool isAmountNumber = decimal.TryParse(Console.ReadLine(), out decimal  amount);
+
+                                    if(!isAmountNumber)
+                                    {
+                                        Console.WriteLine("Сумма должна быть числовым");
+                                        continue;
+                                    }
+
+                                    foundUser.Withdrow(amount);
+
+                                    Console.WriteLine($"Cписание: {amount}");
+                                    break;
+                                }
+
+                                break ;
+                            }
+
                             break;
                         }
                 }
