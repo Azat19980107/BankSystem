@@ -9,6 +9,10 @@
         {
             return $"{Name}, {Id}, Баланс: {Balance}";
         }
+        public void Deposite(decimal amount)
+        {
+            Balance += amount;
+        }
 
     }
     class Bank
@@ -31,18 +35,26 @@
                 Console.WriteLine(account);
             }
         }
+
+        public BankAccount FindAccount (int id)
+        {
+            return accounts.Find(account => account.Id == id);
+        }
+        
     }
     internal class Program
     {
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
+            BankAccount account = new BankAccount ();
             
             while (true)
             {
                 Console.WriteLine(
                     "1 - Создать аккаунт\n" +
-                    "2 - Посмотреть аккаунты");
+                    "2 - Посмотреть аккаунты\n" +
+                    "3 - Пополнить баланс");
 
                 if (!int.TryParse(Console.ReadLine(), out int button))
                 {
@@ -53,36 +65,87 @@
                 switch (button)
                 {
                     case 1:
-
-                        Console.WriteLine("Введите свое имя");
-                        string customerName = Console.ReadLine();
-                        Console.WriteLine("Введите ID");
-                        bool isRunning = true;
-                        while (isRunning)
                         {
-                            bool isNumber = int.TryParse(Console.ReadLine(), out int id);
-
-                            if(!isNumber)
+                            Console.WriteLine("Введите свое имя");
+                            string customerName = Console.ReadLine();
+                            Console.WriteLine("Введите ID");
+                            bool isRunning = true;
+                            while (isRunning)
                             {
-                                Console.WriteLine("Введите число");
-                                continue;
+                                bool isNumber = int.TryParse(Console.ReadLine(), out int id);
+
+                                if (!isNumber)
+                                {
+                                    Console.WriteLine("Введите число");
+                                    continue;
+                                }
+
+                                someBank.CreateAccount(customerName, id);
+
+                                Console.WriteLine("Аккаунт создан");
+
+                                isRunning = false;
+
                             }
 
-                            someBank.CreateAccount(customerName, id);
 
-                            Console.WriteLine("Аккаунт создан");
-                            
-                            isRunning = false;
-                            
+                            break;
                         }
-
-
-                        break;
-
                     case 2:
+                        {
+                            someBank.ShowInfo();
+                            break;
+                        }
+                    case 3:
+                        {
+                            Console.WriteLine("Для пополнения баланс введите ID");
 
-                        someBank.ShowInfo();
-                        break;
+                            bool isRunning = true;
+
+                            while (isRunning)
+                            {
+                                bool isIdNumber = int.TryParse(Console.ReadLine(), out int id);
+
+                                if (!isIdNumber)
+                                {
+                                    Console.WriteLine("Введите число");
+                                    continue;
+                                }
+
+                                var foundUser = someBank.FindAccount(id);
+
+                                if (foundUser == null)
+                                {
+                                    Console.WriteLine("Аккаунт не найден");
+                                    continue;
+                                }
+
+                                Console.WriteLine("Введите сумму для пополнения");
+
+                                while(true)
+                                {
+                                    bool isAmountNumber = decimal.TryParse(Console.ReadLine(),out decimal amount);
+
+                                    if (!isAmountNumber)
+                                    {
+                                        Console.WriteLine("Ожидается число");
+                                        continue;
+                                    }
+
+                                    foundUser.Deposite(amount);
+
+                                    Console.WriteLine($"Баланс пополнен: {amount}");
+
+                                    break;
+                                }
+
+                                isRunning = false;
+                                
+                            }
+
+                           
+                            break;
+                        }
                 }
                 
             }
