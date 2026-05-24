@@ -22,11 +22,11 @@
 
             OperationHistory.Add(new HistoryOfOperation
             {
-                TypeOfOperation = "Пополнение",
+                TypeOfOperation = OperationType.Пополнение,
                 AmountOfOperation = amount
             });
         }
-        public void Withdraw (decimal amount, string type)
+        public void Withdraw (decimal amount, OperationType type)
         {
             if (amount > Balance)
             {
@@ -83,7 +83,7 @@
 
     class HistoryOfOperation
     {
-        public string TypeOfOperation { get; set; }
+        public OperationType TypeOfOperation { get; set; }
         public decimal AmountOfOperation { get; set; }
 
         public override string ToString()
@@ -91,6 +91,14 @@
             return $"{TypeOfOperation}: {AmountOfOperation}";
         }
     }
+
+    enum OperationType
+    {
+        Пополнение,
+        Списание,
+        Перевод
+    }
+
     internal class Program
     {
         static int ReadId ()
@@ -143,12 +151,80 @@
             }
 
         }
+        static string ReadName ()
+        {
+            while(true)
+            {
+                Console.WriteLine("Введите имя");
+
+                string name = Console.ReadLine();
+
+                if (CheckSpaceis(name))
+                {
+                    Console.WriteLine("Имя не может пустым или содержать пробелы");
+                    continue;
+                }
+
+                if (!CheckLengthOfName(name))
+                {
+                    Console.WriteLine("Имя должно быть из не менее трех букв");
+                    continue;
+                }
+
+                if (DoesContainDigitOrSymbols(name))
+                {
+                    Console.WriteLine("Имя содержит цифры или символы");
+                    continue;
+                }
+
+                return name;
+
+            }
+        }
+
+        static bool CheckLengthOfName (string name)
+        {
+            bool isMoreThenThreeSymbols = true;
+
+            if (name.Length < 3)
+            {
+                isMoreThenThreeSymbols = false; 
+            }
+
+            return isMoreThenThreeSymbols;
+        }
+        static bool CheckSpaceis (string name)
+        {
+            bool doesContainSpacesisOrEmptyness = false;
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                doesContainSpacesisOrEmptyness = true;
+            }
+
+            return doesContainSpacesisOrEmptyness;
+        }
+
+        static bool DoesContainDigitOrSymbols (string name)
+        {
+            bool doesContain = false;
+
+            foreach (char letter in name)
+            {
+                if (!char.IsLetter(letter))
+                {
+                    doesContain = true;
+                }
+            }
+
+            return doesContain;
+        }
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
             BankAccount account = new BankAccount ();
-            
-            while (true)
+            bool isRunning = true;
+            while (isRunning)
             {
                 Console.Clear ();
                 Console.WriteLine(
@@ -169,65 +245,11 @@
                 {
                     case 1:
                         {
-                            Console.WriteLine("Введите свое имя");
-                            bool isRunning = true;
-                            while (isRunning)
-                            {
-                                string name = Console.ReadLine();
+                            someBank.CreateAccount(ReadName(), ReadId());
 
-                                if (name.Length < 3)
-                                {
-                                    Console.WriteLine("Имя должно быть из не менее трех букв");
-                                    continue;
-                                }
+                            Console.WriteLine("Аккаунт создан. Нажмите Enter...");
 
-                                if(string.IsNullOrWhiteSpace(name))
-                                {
-                                    Console.WriteLine("Имя не может пустым или содержать пробелы");
-                                    continue;
-                                }
-
-                                bool doesContainDigit = false;
-
-                                foreach (char letter in name)
-                                {
-                                    if (char.IsDigit(letter))
-                                    {
-                                        doesContainDigit = true;
-                                    }
-                                
-                                }
-
-                                if (doesContainDigit)
-                                {
-                                    Console.WriteLine("Имя содержит цифру, попробуйте еще раз");
-                                    continue;
-                                }
-
-                                bool isSymbol = false;
-
-                                foreach (char letter in name)
-                                {
-                                    if (!char.IsLetter(letter))
-                                    {
-                                        isSymbol = true;
-                                    }
-                                }
-
-                                if (isSymbol)
-                                {
-                                    Console.WriteLine("Имя содержит символы, попробуйте еще раз");
-                                    continue;
-                                }
-
-                                someBank.CreateAccount(name, ReadId());
-
-                                Console.WriteLine("Аккаунт создан. Нажмите Enter...");
-
-                                Console.ReadLine();
-
-                                isRunning = false;
-                            }
+                            Console.ReadLine();
 
                             break;
                         }
@@ -267,7 +289,7 @@
                         }
                     case 4:
                         {
-                            string type = "Списание";
+                            OperationType type = OperationType.Списание;
 
                             Console.WriteLine("Cписание средств");
 
@@ -309,7 +331,7 @@
                         }
                     case 6:
                         {
-                            string type = "Перевод средств";
+                            OperationType type = OperationType.Перевод;
 
                             Console.WriteLine("Перевод денег по ID");
 
@@ -332,6 +354,12 @@
                             Console.ReadLine();
 
                             break;
+                        }
+                    case 0:
+                        {
+                            Console.WriteLine("Завершение программы, нажмите Enter...");
+                            Console.ReadLine();
+                            return;
                         }
                 }
                 
