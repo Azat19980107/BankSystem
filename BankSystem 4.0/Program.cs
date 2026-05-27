@@ -1,4 +1,6 @@
-﻿namespace BankSystem_4._0
+﻿using System.Text.Json;
+
+namespace BankSystem_4._0
 {
     class BankAccount
     {
@@ -64,6 +66,23 @@
                 Id = id,
                 Name = name,
             });
+
+            string json = JsonSerializer.Serialize(accounts);
+            File.WriteAllText("accounts.json", json);
+        }
+
+        public void LoadAccounts ()
+        {
+            if (File.Exists("accounts.json"))
+            {
+                string jsonFromFile = File.ReadAllText("accounts.json");
+                accounts = JsonSerializer.Deserialize<List<BankAccount>>(jsonFromFile);
+            }
+            else
+            {
+                Console.WriteLine("Файл не найден");
+            }
+            
         }
 
         public void ShowInfo ()
@@ -77,6 +96,11 @@
         public BankAccount FindAccount (int id)
         {
             return accounts.Find(account => account.Id == id);
+        }
+
+        public bool CheckIsUniq (int id)
+        {
+            return accounts.Any(account => account.Id == id);
         }
         
     }
@@ -219,14 +243,42 @@
 
             return doesContain;
         }
+
+        static void HandleCreateAccount (Bank bank)
+        {
+            string name = ReadName();
+
+            while (true)
+            {
+                int id = ReadId();
+
+                if(bank.CheckIsUniq(id))
+                {
+                    Console.WriteLine("ID уже существует");
+                    continue;
+                }
+
+                bank.CreateAccount(name, id);
+                Console.WriteLine("Аккаунт создан. Нажмите Enter...");
+                Console.ReadLine();
+                break;
+            }
+
+
+        }
+        static bool CheckIsExist (int id, Bank bank)
+        {
+            bool isExist = bank.CheckIsUniq(id);
+            return isExist;
+        }
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
-            BankAccount account = new BankAccount ();
+            someBank.LoadAccounts();
             bool isRunning = true;
             while (isRunning)
             {
-                Console.Clear ();
+                Console.Clear();
                 Console.WriteLine(
                     "1 - Создать аккаунт\n" +
                     "2 - Посмотреть аккаунты\n" +
@@ -245,11 +297,7 @@
                 {
                     case 1:
                         {
-                            someBank.CreateAccount(ReadName(), ReadId());
-
-                            Console.WriteLine("Аккаунт создан. Нажмите Enter...");
-
-                            Console.ReadLine();
+                            HandleCreateAccount(someBank);
 
                             break;
                         }
@@ -277,7 +325,7 @@
 
                                 Console.WriteLine($"Баланс пополнен: {userAmount}");
                             }
-                            catch(ArgumentException ex)
+                            catch (ArgumentException ex)
                             {
                                 Console.WriteLine(ex.Message);
                             }
@@ -310,9 +358,9 @@
 
                             Console.WriteLine("Нажмите на Enter...");
 
-                            Console.ReadLine ();
+                            Console.ReadLine();
 
-                            
+
                             break;
                         }
                     case 5:
@@ -326,7 +374,7 @@
                             Console.WriteLine("\nНажмите на Enter...");
 
                             Console.ReadLine();
-                            
+
                             break;
                         }
                     case 6:
@@ -362,7 +410,7 @@
                             return;
                         }
                 }
-                
+
             }
         }
     }
