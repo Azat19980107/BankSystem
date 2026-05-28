@@ -57,7 +57,7 @@ namespace BankSystem_4._0
     }
     class Bank
     {
-        List <BankAccount> accounts = new List <BankAccount> ();
+        public List <BankAccount> accounts = new List <BankAccount> ();
 
         public void CreateAccount (string name, int id)
         {
@@ -66,23 +66,6 @@ namespace BankSystem_4._0
                 Id = id,
                 Name = name,
             });
-
-            string json = JsonSerializer.Serialize(accounts);
-            File.WriteAllText("accounts.json", json);
-        }
-
-        public void LoadAccounts ()
-        {
-            if (File.Exists("accounts.json"))
-            {
-                string jsonFromFile = File.ReadAllText("accounts.json");
-                accounts = JsonSerializer.Deserialize<List<BankAccount>>(jsonFromFile);
-            }
-            else
-            {
-                Console.WriteLine("Файл не найден");
-            }
-            
         }
 
         public void ShowInfo ()
@@ -102,7 +85,18 @@ namespace BankSystem_4._0
         {
             return accounts.Any(account => account.Id == id);
         }
-        
+
+        public void SaveAccounts()
+        {
+            string jsonAccounts = JsonSerializer.Serialize(accounts);
+            File.WriteAllText("savedAccounts.json", jsonAccounts);
+        }
+
+        public List<BankAccount> LoadAccounts ()
+        {
+            string jsonAccountsFromFile = File.ReadAllText("savedAccounts.json");
+            return JsonSerializer.Deserialize<List<BankAccount>>(jsonAccountsFromFile);
+        }
     }
 
     class HistoryOfOperation
@@ -205,7 +199,6 @@ namespace BankSystem_4._0
 
             }
         }
-
         static bool CheckLengthOfName (string name)
         {
             bool isMoreThenThreeSymbols = true;
@@ -228,7 +221,6 @@ namespace BankSystem_4._0
 
             return doesContainSpacesisOrEmptyness;
         }
-
         static bool DoesContainDigitOrSymbols (string name)
         {
             bool doesContain = false;
@@ -243,7 +235,6 @@ namespace BankSystem_4._0
 
             return doesContain;
         }
-
         static void HandleCreateAccount (Bank bank)
         {
             string name = ReadName();
@@ -266,15 +257,13 @@ namespace BankSystem_4._0
 
 
         }
-        static bool CheckIsExist (int id, Bank bank)
-        {
-            bool isExist = bank.CheckIsUniq(id);
-            return isExist;
-        }
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
-            someBank.LoadAccounts();
+            if (File.Exists("savedAccounts.json"))
+            {
+                someBank.accounts = someBank.LoadAccounts();
+            }
             bool isRunning = true;
             while (isRunning)
             {
@@ -406,6 +395,7 @@ namespace BankSystem_4._0
                     case 0:
                         {
                             Console.WriteLine("Завершение программы, нажмите Enter...");
+                            someBank.SaveAccounts();
                             Console.ReadLine();
                             return;
                         }
