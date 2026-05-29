@@ -27,6 +27,8 @@ namespace BankSystem_4._0
                 TypeOfOperation = OperationType.Пополнение,
                 AmountOfOperation = amount
             });
+
+            
         }
         public void Withdraw (decimal amount, OperationType type)
         {
@@ -66,6 +68,8 @@ namespace BankSystem_4._0
                 Id = id,
                 Name = name,
             });
+
+            SaveAccounts ();
         }
 
         public void ShowInfo ()
@@ -257,6 +261,103 @@ namespace BankSystem_4._0
 
 
         }
+        static void HandleTransferMoney (Bank bank)
+        {
+            OperationType type = OperationType.Перевод;
+
+            Console.WriteLine("Перевод денег по ID");
+
+            var foundUser = GetAccount(bank);
+
+            Console.WriteLine("ID получателя");
+
+            var receiver = GetAccount(bank);
+
+            decimal userAmount = ReadAmount();
+
+            foundUser.Withdraw(userAmount, type);
+
+            receiver.Deposit(userAmount);
+
+            Console.WriteLine($"Cписание: {userAmount}");
+
+            bank.SaveAccounts();
+
+            Console.WriteLine("\nНажмите на Enter...");
+
+            Console.ReadLine();
+        }
+        static void HandleWithdrawMoney(Bank bank)
+        {
+            OperationType type = OperationType.Списание;
+
+            Console.WriteLine("Cписание средств");
+
+            var foundUser = GetAccount(bank);
+
+            decimal userAmount = ReadAmount();
+
+            try
+            {
+                foundUser.Withdraw(userAmount, type);
+                Console.WriteLine($"{type}: {userAmount}");
+                bank.SaveAccounts();
+
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+
+            Console.WriteLine("Нажмите на Enter...");
+
+            Console.ReadLine();
+        }
+        static void HandleDepositMoney (Bank bank)
+        {
+            Console.WriteLine("Пополнение баланса");
+
+            var foundUser = GetAccount(bank);
+
+            decimal userAmount = ReadAmount();
+
+            try
+            {
+                foundUser.Deposit(userAmount);
+
+                Console.WriteLine($"Баланс пополнен: {userAmount}");
+
+                bank.SaveAccounts();
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            Console.WriteLine("Нажмите на Enter...");
+            Console.ReadLine();
+        }
+        static void HandleShowAccounts (Bank bank)
+        {
+            bank.ShowInfo();
+
+            Console.WriteLine("Нажмите на Enter...");
+
+            Console.ReadLine();
+        }
+        static void HandleOperationHistore (Bank bank)
+        {
+            Console.WriteLine("Посмотреть историю операций");
+
+            var foundUser = GetAccount(bank);
+
+            foundUser.ShowHistory();
+
+            Console.WriteLine("\nНажмите на Enter...");
+
+            Console.ReadLine();
+        }
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
@@ -292,110 +393,41 @@ namespace BankSystem_4._0
                         }
                     case 2:
                         {
-                            someBank.ShowInfo();
-
-                            Console.WriteLine("Нажмите на Enter...");
-
-                            Console.ReadLine();
-
+                            HandleShowAccounts(someBank);
                             break;
                         }
                     case 3:
                         {
-                            Console.WriteLine("Пополнение баланса");
-
-                            var foundUser = GetAccount(someBank);
-
-                            decimal userAmount = ReadAmount();
-
-                            try
-                            {
-                                foundUser.Deposit(userAmount);
-
-                                Console.WriteLine($"Баланс пополнен: {userAmount}");
-                            }
-                            catch (ArgumentException ex)
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
-
-                            Console.WriteLine("Нажмите на Enter...");
-                            Console.ReadLine();
-
+                            HandleDepositMoney(someBank);
                             break;
                         }
                     case 4:
                         {
-                            OperationType type = OperationType.Списание;
-
-                            Console.WriteLine("Cписание средств");
-
-                            var foundUser = GetAccount(someBank);
-
-                            decimal userAmount = ReadAmount();
-
-                            try
-                            {
-                                foundUser.Withdraw(userAmount, type);
-                                Console.WriteLine($"{type}: {userAmount}");
-
-                            }
-                            catch (ArgumentException ex)
-                            {
-                                Console.WriteLine(ex.Message);
-                            }
-
-                            Console.WriteLine("Нажмите на Enter...");
-
-                            Console.ReadLine();
-
-
+                            HandleWithdrawMoney(someBank);
                             break;
                         }
                     case 5:
                         {
-                            Console.WriteLine("Посмотреть историю операций");
+                            //Console.WriteLine("Посмотреть историю операций");
 
-                            var foundUser = GetAccount(someBank);
+                            //var foundUser = GetAccount(someBank);
 
-                            foundUser.ShowHistory();
+                            //foundUser.ShowHistory();
 
-                            Console.WriteLine("\nНажмите на Enter...");
+                            //Console.WriteLine("\nНажмите на Enter...");
 
-                            Console.ReadLine();
-
+                            //Console.ReadLine();
+                            HandleOperationHistore(someBank);
                             break;
                         }
                     case 6:
                         {
-                            OperationType type = OperationType.Перевод;
-
-                            Console.WriteLine("Перевод денег по ID");
-
-                            var foundUser = GetAccount(someBank);
-
-                            Console.WriteLine("ID получателя");
-
-                            var receiver = GetAccount(someBank);
-
-                            decimal userAmount = ReadAmount();
-
-                            foundUser.Withdraw(userAmount, type);
-
-                            receiver.Deposit(userAmount);
-
-                            Console.WriteLine($"Cписание: {userAmount}");
-
-                            Console.WriteLine("\nНажмите на Enter...");
-
-                            Console.ReadLine();
-
+                            HandleTransferMoney(someBank);
                             break;
                         }
                     case 0:
                         {
                             Console.WriteLine("Завершение программы, нажмите Enter...");
-                            someBank.SaveAccounts();
                             Console.ReadLine();
                             return;
                         }
