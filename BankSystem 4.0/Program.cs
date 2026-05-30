@@ -8,7 +8,8 @@ namespace BankSystem_4._0
         public string Name { get; set; }
         public decimal Balance { get; set; }
 
-        List<HistoryOfOperation> OperationHistory = new List<HistoryOfOperation>();
+        public List<HistoryOfOperation> OperationHistory { get; set; } = new List<HistoryOfOperation>();
+
         public override string ToString()
         {
             return $"{Name}, {Id}, Баланс: {Balance}";
@@ -92,7 +93,11 @@ namespace BankSystem_4._0
 
         public void SaveAccounts()
         {
-            string jsonAccounts = JsonSerializer.Serialize(accounts);
+            string jsonAccounts = JsonSerializer.Serialize(accounts, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
             File.WriteAllText("savedAccounts.json", jsonAccounts);
         }
 
@@ -263,29 +268,49 @@ namespace BankSystem_4._0
         }
         static void HandleTransferMoney (Bank bank)
         {
-            OperationType type = OperationType.Перевод;
+            while (true)
+            {
+                OperationType type = OperationType.Перевод;
 
-            Console.WriteLine("Перевод денег по ID");
+                Console.WriteLine("Перевод денег по ID");
 
-            var foundUser = GetAccount(bank);
+                var foundUser = GetAccount(bank);
 
-            Console.WriteLine("ID получателя");
+                Console.WriteLine("ID получателя");
 
-            var receiver = GetAccount(bank);
+                var receiver = GetAccount(bank);
 
-            decimal userAmount = ReadAmount();
+                if (foundUser.Id == receiver.Id)
+                {
+                    Console.WriteLine("Нельзя перевести своему же аккаунту");
+                    continue;
+                }
 
-            foundUser.Withdraw(userAmount, type);
+                decimal userAmount = ReadAmount();
 
-            receiver.Deposit(userAmount);
+                try
+                {
+                    foundUser.Withdraw(userAmount, type);
 
-            Console.WriteLine($"Cписание: {userAmount}");
+                    receiver.Deposit(userAmount);
 
-            bank.SaveAccounts();
+                    Console.WriteLine($"Cписание: {userAmount}");
 
-            Console.WriteLine("\nНажмите на Enter...");
+                    bank.SaveAccounts();
+                }
+                catch (ArgumentException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
 
-            Console.ReadLine();
+                Console.WriteLine("\nНажмите на Enter...");
+
+                Console.ReadLine();
+
+                break;
+
+            }
+
         }
         static void HandleWithdrawMoney(Bank bank)
         {
@@ -346,7 +371,7 @@ namespace BankSystem_4._0
 
             Console.ReadLine();
         }
-        static void HandleOperationHistore (Bank bank)
+        static void HandleOperationHistory (Bank bank)
         {
             Console.WriteLine("Посмотреть историю операций");
 
@@ -388,7 +413,6 @@ namespace BankSystem_4._0
                     case 1:
                         {
                             HandleCreateAccount(someBank);
-
                             break;
                         }
                     case 2:
@@ -408,16 +432,7 @@ namespace BankSystem_4._0
                         }
                     case 5:
                         {
-                            //Console.WriteLine("Посмотреть историю операций");
-
-                            //var foundUser = GetAccount(someBank);
-
-                            //foundUser.ShowHistory();
-
-                            //Console.WriteLine("\nНажмите на Enter...");
-
-                            //Console.ReadLine();
-                            HandleOperationHistore(someBank);
+                            HandleOperationHistory(someBank);
                             break;
                         }
                     case 6:
