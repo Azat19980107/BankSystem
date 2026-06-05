@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Runtime.InteropServices.Marshalling;
+using System.Text.Json;
+using Microsoft.Data.Sqlite;
 
 namespace BankSystem_4._0
 {
@@ -7,9 +9,13 @@ namespace BankSystem_4._0
         public int Id { get; set; }
         public string Name { get; set; }
         public decimal Balance { get; set; }
-
         public List<HistoryOfOperation> OperationHistory { get; set; } = new List<HistoryOfOperation>();
-
+        public BankAccount(string name, int id)
+        {
+            Name = name;
+            Id = id;
+        }
+        public BankAccount() { }
         public override string ToString()
         {
             return $"{Name}, {Id}, Баланс: {Balance}";
@@ -26,10 +32,9 @@ namespace BankSystem_4._0
             OperationHistory.Add(new HistoryOfOperation
             {
                 TypeOfOperation = OperationType.Пополнение,
-                AmountOfOperation = amount
-            });
-
-            
+                AmountOfOperation = amount,
+                Date = DateTime.Now
+            }); 
         }
         public void Withdraw (decimal amount, OperationType type)
         {
@@ -47,7 +52,8 @@ namespace BankSystem_4._0
             OperationHistory.Add(new HistoryOfOperation
             {
                 TypeOfOperation = type,
-                AmountOfOperation = amount
+                AmountOfOperation = amount,
+                Date = DateTime.Now
             });
         }
         public void ShowHistory ()
@@ -60,65 +66,155 @@ namespace BankSystem_4._0
     }
     class Bank
     {
-        public List <BankAccount> accounts = new List <BankAccount> ();
+        public List<BankAccount> accounts = new List<BankAccount>();
 
+        private DataBase database;
+        public Bank ()
+        {
+            database = new DataBase ();
+        }
         public void CreateAccount (string name, int id)
         {
-            accounts.Add(new BankAccount
-            {
-                Id = id,
-                Name = name,
-            });
+            database.SaveAccount(id, name);
 
-            SaveAccounts ();
+            //SaveAccounts ();
         }
-
         public void ShowInfo ()
         {
-            foreach (var account in accounts)
+            List<BankAccount> bankAccounts = database.GetBankAccounts ();
+
+            foreach ( var account in bankAccounts )
             {
                 Console.WriteLine(account);
             }
         }
-
         public BankAccount FindAccount (int id)
         {
-            return accounts.Find(account => account.Id == id);
+            return database.GetAccount (id);
         }
-
         public bool CheckIsUniq (int id)
         {
-            return accounts.Any(account => account.Id == id);
+            return database.GetAccount(id) != null;
         }
-
-        public void SaveAccounts()
+        public void UpdateAccount (BankAccount account)
         {
-            string jsonAccounts = JsonSerializer.Serialize(accounts, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            File.WriteAllText("savedAccounts.json", jsonAccounts);
-        }
-
-        public List<BankAccount> LoadAccounts ()
-        {
-            string jsonAccountsFromFile = File.ReadAllText("savedAccounts.json");
-            return JsonSerializer.Deserialize<List<BankAccount>>(jsonAccountsFromFile);
+            database.UpdataBalance(account.Balance, account.Id);
         }
     }
-
     class HistoryOfOperation
     {
         public OperationType TypeOfOperation { get; set; }
         public decimal AmountOfOperation { get; set; }
-
+        public DateTime Date {  get; set; }
         public override string ToString()
         {
-            return $"{TypeOfOperation}: {AmountOfOperation}";
+            return $"{TypeOfOperation}: {AmountOfOperation}| {Date:f}";
         }
     }
+    class DataBase
+    {
+        private SqliteConnection connection;
+        public DataBase ()
+        {
+            connection = new SqliteConnection ("Data Source=BankDataBase.db");
+            connection.Open ();
+        }
+        public void CreateTable()
+        {
+            string createTableSql =
+                """
+                    CREATE TABLE IF NOT EXISTS Accounts
+                        (
+                            Id INTEGER PRIMARY KEY,
+                            Name TEXT NOT NULL,
+                            Balance REAL NOT NULL
+                        )
+                """;
 
+            using var command = new SqliteCommand (createTableSql, connection);
+            command.ExecuteNonQuery ();
+        }
+        public void SaveAccount(int id, string name, decimal balance = 0)
+        {
+            string createAccountSql =
+                """
+                    INSERT INTO Accounts
+                    (Id, Name, Balance)
+                    VALUES
+                    (@id, @name, @balance)
+                """;
+
+            using var command = new SqliteCommand (createAccountSql, connection);
+
+            command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@name", name);
+            command.Parameters.AddWithValue("@balance", balance);
+            command.ExecuteNonQuery();
+        }
+        public List<BankAccount> GetBankAccounts ()
+        {
+            List<BankAccount> accountsFromDB = new List<BankAccount> ();
+
+            string selectAccountSql =
+                """
+                    SELECT * FROM Accounts
+                """;
+
+            using var command = new SqliteCommand (selectAccountSql, connection);
+
+            var reader = command.ExecuteReader ();
+
+            while (reader.Read())
+            {
+                accountsFromDB.Add(new BankAccount()
+                {
+                    Id = Convert.ToInt32(reader["Id"]),
+                    Name = Convert.ToString(reader["Name"]),
+                    Balance = Convert.ToDecimal(reader["Balance"])
+                });
+            }
+
+            return accountsFromDB;
+        }
+        public BankAccount GetAccount(int id)
+        {
+            string selectAccountSql =
+                 """
+                    SELECT * FROM Accounts
+                    WHERE Id = @id
+                 """;
+
+            using var command = new SqliteCommand (selectAccountSql, connection);
+            command.Parameters.AddWithValue("@id", id);
+            var reader = command.ExecuteReader();
+
+            if (reader.Read())
+            {
+                return new BankAccount()
+                {
+                    Id = Convert.ToInt32(reader["Id"]),
+                    Name = Convert.ToString(reader["Name"]),
+                    Balance = Convert.ToDecimal(reader["Balance"])
+                };
+            }
+
+            return null;
+        }
+        public void UpdataBalance (decimal balance, int id)
+        {
+            string updateBalanceSql =
+                """
+                    UPDATE Accounts
+                    SET Balance = @balance
+                    WHERE Id = @id
+                """;
+
+            using var command = new SqliteCommand (updateBalanceSql, connection);
+            command.Parameters.AddWithValue("@balance", balance);
+            command.Parameters.AddWithValue("@id", id);
+            command.ExecuteNonQuery();
+        }
+    }
     enum OperationType
     {
         Пополнение,
@@ -263,8 +359,6 @@ namespace BankSystem_4._0
                 Console.ReadLine();
                 break;
             }
-
-
         }
         static void HandleTransferMoney (Bank bank)
         {
@@ -291,12 +385,12 @@ namespace BankSystem_4._0
                 try
                 {
                     foundUser.Withdraw(userAmount, type);
+                    bank.UpdateAccount(foundUser);
 
                     receiver.Deposit(userAmount);
+                    bank.UpdateAccount(receiver);
 
                     Console.WriteLine($"Cписание: {userAmount}");
-
-                    bank.SaveAccounts();
                 }
                 catch (ArgumentException ex)
                 {
@@ -325,8 +419,9 @@ namespace BankSystem_4._0
             try
             {
                 foundUser.Withdraw(userAmount, type);
+                bank.UpdateAccount(foundUser);
                 Console.WriteLine($"{type}: {userAmount}");
-                bank.SaveAccounts();
+                //bank.SaveAccounts();
 
             }
             catch (ArgumentException ex)
@@ -350,10 +445,10 @@ namespace BankSystem_4._0
             try
             {
                 foundUser.Deposit(userAmount);
-
+                bank.UpdateAccount(foundUser);
                 Console.WriteLine($"Баланс пополнен: {userAmount}");
 
-                bank.SaveAccounts();
+                //bank.SaveAccounts();
             }
             catch (ArgumentException ex)
             {
@@ -386,10 +481,8 @@ namespace BankSystem_4._0
         static void Main(string[] args)
         {
             Bank someBank = new Bank ();
-            if (File.Exists("savedAccounts.json"))
-            {
-                someBank.accounts = someBank.LoadAccounts();
-            }
+            DataBase dataBase = new DataBase();
+            dataBase.CreateTable();
             bool isRunning = true;
             while (isRunning)
             {
