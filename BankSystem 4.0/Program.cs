@@ -34,7 +34,7 @@ namespace BankSystem_4._0
                 TypeOfOperation = OperationType.Пополнение,
                 AmountOfOperation = amount,
                 Date = DateTime.Now
-            }); 
+            });
         }
         public void Withdraw (decimal amount, OperationType type)
         {
@@ -56,9 +56,9 @@ namespace BankSystem_4._0
                 Date = DateTime.Now
             });
         }
-        public void ShowHistory ()
+        public void ShowHistory()
         {
-            foreach ( var operation in OperationHistory )
+            foreach (var operation in OperationHistory)
             {
                 Console.WriteLine(operation);
             }
@@ -66,8 +66,6 @@ namespace BankSystem_4._0
     }
     class Bank
     {
-        public List<BankAccount> accounts = new List<BankAccount>();
-
         private DataBase database;
         public Bank ()
         {
@@ -99,6 +97,14 @@ namespace BankSystem_4._0
         public void UpdateAccount (BankAccount account)
         {
             database.UpdataBalance(account.Balance, account.Id);
+        }
+        public void SaveOperation (int accountid, OperationType type, decimal amount)
+        {
+            database.SaveAccountOperation(accountid, type, amount, DateTime.Now);
+        }
+        public List<HistoryOfOperation> GetHistore (int accountId)
+        {
+            return database.GetHistoreOfOperations(accountId);
         }
     }
     class HistoryOfOperation
@@ -134,6 +140,23 @@ namespace BankSystem_4._0
             using var command = new SqliteCommand (createTableSql, connection);
             command.ExecuteNonQuery ();
         }
+        public void CreateOperationTable ()
+        {
+            string createOperationTableSql =
+                """
+                    CREATE TABLE IF NOT EXISTS Operations
+                    (
+                        NumberOfOperation INTEGER PRIMARY KEY AUTOINCREMENT,
+                        AccountId INTEGER NOT NULL,
+                        OperationType TEXT NOT NULL,
+                        Amount REAL NOT NULL,
+                        Date TEXT NOT NULL
+                    )
+                """;
+
+            using var command = new SqliteCommand (createOperationTableSql, connection);
+            command.ExecuteNonQuery ();
+        }
         public void SaveAccount(int id, string name, decimal balance = 0)
         {
             string createAccountSql =
@@ -149,6 +172,23 @@ namespace BankSystem_4._0
             command.Parameters.AddWithValue("@id", id);
             command.Parameters.AddWithValue("@name", name);
             command.Parameters.AddWithValue("@balance", balance);
+            command.ExecuteNonQuery();
+        }
+        public void SaveAccountOperation (int accountId, OperationType type, decimal amount, DateTime date)
+        {
+            string saveOperationSql =
+                """
+                    INSERT INTO Operations
+                    (AccountId, OperationType, Amount, Date)
+                    VALUES
+                    (@accountid, @operationtype, @amount, @date)
+                """;
+
+            using var command = new SqliteCommand (saveOperationSql, connection);
+            command.Parameters.AddWithValue("@accountid", accountId);
+            command.Parameters.AddWithValue("@operationtype", type.ToString());
+            command.Parameters.AddWithValue("@amount", amount);
+            command.Parameters.AddWithValue("@date", date.ToString("yyyy-MM-dd HH:mm"));
             command.ExecuteNonQuery();
         }
         public List<BankAccount> GetBankAccounts ()
@@ -176,6 +216,31 @@ namespace BankSystem_4._0
 
             return accountsFromDB;
         }
+        public List<HistoryOfOperation> GetHistoreOfOperations (int accountId)
+        {
+            List<HistoryOfOperation> operations = new List<HistoryOfOperation> ();
+
+            string selectOperationsSql =
+                """
+                    SELECT * FROM Operations
+                    WHERE AccountId = @accountId
+                """;
+
+            using var command = new SqliteCommand ( selectOperationsSql, connection);
+            command.Parameters.AddWithValue("@accountId", accountId);
+            var reader = command.ExecuteReader ();
+            while (reader.Read())
+            {
+                operations.Add(new HistoryOfOperation()
+                {
+                    TypeOfOperation = Enum.Parse<OperationType>(reader["OperationType"].ToString()),
+                    AmountOfOperation = Convert.ToDecimal(reader["Amount"]),
+                    Date = Convert.ToDateTime(reader["Date"])
+                });
+            }
+
+            return operations;
+        } 
         public BankAccount GetAccount(int id)
         {
             string selectAccountSql =
@@ -386,9 +451,11 @@ namespace BankSystem_4._0
                 {
                     foundUser.Withdraw(userAmount, type);
                     bank.UpdateAccount(foundUser);
+                    bank.SaveOperation(foundUser.Id, type, userAmount);
 
                     receiver.Deposit(userAmount);
                     bank.UpdateAccount(receiver);
+                    bank.SaveOperation(receiver.Id, OperationType.Пополнение, userAmount);
 
                     Console.WriteLine($"Cписание: {userAmount}");
                 }
@@ -420,6 +487,7 @@ namespace BankSystem_4._0
             {
                 foundUser.Withdraw(userAmount, type);
                 bank.UpdateAccount(foundUser);
+                bank.SaveOperation(foundUser.Id, type, userAmount);
                 Console.WriteLine($"{type}: {userAmount}");
                 //bank.SaveAccounts();
 
@@ -436,6 +504,8 @@ namespace BankSystem_4._0
         }
         static void HandleDepositMoney (Bank bank)
         {
+            //OperationType type = OperationType.Пополнение;
+
             Console.WriteLine("Пополнение баланса");
 
             var foundUser = GetAccount(bank);
@@ -446,6 +516,7 @@ namespace BankSystem_4._0
             {
                 foundUser.Deposit(userAmount);
                 bank.UpdateAccount(foundUser);
+                bank.SaveOperation(foundUser.Id, OperationType.Пополнение, userAmount);
                 Console.WriteLine($"Баланс пополнен: {userAmount}");
 
                 //bank.SaveAccounts();
@@ -472,6 +543,8 @@ namespace BankSystem_4._0
 
             var foundUser = GetAccount(bank);
 
+            foundUser.OperationHistory = bank.GetHistore(foundUser.Id);
+
             foundUser.ShowHistory();
 
             Console.WriteLine("\nНажмите на Enter...");
@@ -483,6 +556,7 @@ namespace BankSystem_4._0
             Bank someBank = new Bank ();
             DataBase dataBase = new DataBase();
             dataBase.CreateTable();
+            dataBase.CreateOperationTable();
             bool isRunning = true;
             while (isRunning)
             {
